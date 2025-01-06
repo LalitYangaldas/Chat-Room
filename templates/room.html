@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{room}} - Chat Room</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f0f4f8; /* 10% Grey for the overall background */
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    .container {
+      background-color: #fff; /* 30% White for the container */
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e0e0e0;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 20px;
+      color: #2c3e50; /* Navy blue for the header */
+    }
+
+    .chat-container {
+      margin-bottom: 20px;
+      max-height: 400px;
+      overflow-y: scroll;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+
+    .chat-message {
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      background-color: #ecf0f1; /* Light grey for messages */
+      border: 1px solid #bdc3c7; /* Grey border for messages */
+    }
+
+    .chat-message.darker {
+      background-color: #bdc3c7; /* Darker grey for certain messages */
+      border-color: #95a5a6; /* Darker grey border */
+    }
+
+    .chat-message img {
+      max-width: 60px;
+      width: 100%;
+      border-radius: 50%;
+      margin-right: 20px;
+    }
+
+    .chat-message .content {
+      flex-grow: 1;
+    }
+
+    .chat-message .time {
+      color: #7f8c8d; /* Light grey for time text */
+      font-size: 0.9rem;
+      align-self: flex-end;
+      margin-top: 5px;
+    }
+
+    .message-form {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #bdc3c7;
+      font-size: 1rem;
+      color: #333;
+      background-color: #ecf0f1; /* Light grey background */
+      box-sizing: border-box;
+      transition: all 0.3s ease-in-out;
+    }
+
+    input[type="text"]:focus {
+      border-color: #2980b9; /* Navy blue when focused */
+      outline: none;
+      background-color: #fff; /* White background when focused */
+    }
+
+    input[type="submit"] {
+      width: 100%;
+      padding: 14px;
+      background-color: #2980b9; /* Navy blue for the submit button */
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #1f6280; /* Darker navy blue on hover */
+      transform: translateY(-2px);
+    }
+
+    input[type="submit"]:active {
+      background-color: #1c4d66; /* Even darker navy blue on active */
+      transform: translateY(1px);
+    }
+
+    .form-footer {
+      text-align: center;
+      margin-top: 20px;
+      color: #7f8c8d; /* Light grey for footer text */
+    }
+
+    .form-footer a {
+      color: #2980b9; /* Navy blue for the footer link */
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .form-footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+  
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <div class="container">
+    <h2>{{room}} - Chat Room</h2>
+
+    <!-- Chat Display -->
+    <div class="chat-container" id="display"></div>
+
+    <!-- Message Form -->
+    <div class="message-form">
+      <form id="post-form">
+        {% csrf_token %}
+        <input type="hidden" name="username" id="username" value="{{username}}"/>
+        <input type="hidden" name="room_id" id="room_id" value="{{room_details.id}}"/>
+        <input type="text" name="message" id="message" placeholder="Type your message..." required />
+        <input type="submit" value="Send">
+      </form>
+    </div>
+
+    <div class="form-footer">
+      <p>Need help? <a href="#">Contact Support</a></p>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function(){
+      setInterval(function(){
+        $.ajax({
+          type: 'GET',
+          url: "/getMessages/{{room}}/",
+          success: function(response){
+            $("#display").empty();
+            for (var key in response.messages) {
+              var message = response.messages[key];
+              var messageHTML = `
+                <div class="chat-message darker">
+                  <div class="content">
+                    <b>${message.user}</b>
+                    <p>${message.value}</p>
+                  </div>
+                  <span class="time">${message.date}</span>
+                </div>`;
+              $("#display").append(messageHTML);
+            }
+          },
+          error: function(response){
+            alert('An error occurred');
+          }
+        });
+      }, 1000);
+
+      $('#post-form').on('submit', function(e){
+        e.preventDefault();
+
+        $.ajax({
+          type: 'POST',
+          url: '/send',
+          data: {
+            username: $('#username').val(),
+            room_id: $('#room_id').val(),
+            message: $('#message').val(),
+            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+          },
+          success: function(data) {
+            console.log('Message sent');
+          }
+        });
+        
+        document.getElementById('message').value = ''; // Clear message input
+      });
+    });
+  </script>
+
+</body>
+</html>
